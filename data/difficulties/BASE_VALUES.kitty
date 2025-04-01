@@ -1,9 +1,0 @@
-{
-  "fullnessDecayPerSecond": 0.0014,
-  "happinessDecayPerSecond": 0.0008,
-  "healthDecayWhenHungryPerSecond": 0.0006,
-  "feedingFullnessBoost": 30,
-  "feedingHappinessBoost": 5,
-  "playingHappinessBoost": 20,
-  "playingFullnessCost": 10
-}

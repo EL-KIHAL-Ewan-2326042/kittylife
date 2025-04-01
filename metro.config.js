@@ -7,7 +7,7 @@ const config = getDefaultConfig(__dirname);
 // Add .kitty extension to the sourceExts
 config.resolver.sourceExts.push('kitty');
 
-// Configure the transformer for .kitty files
-config.transformer.babelTransformerPath = require.resolve('./kittyTransformer.js');
+// Just add json explicitly
+config.resolver.sourceExts.push('json');
 
 module.exports = config;

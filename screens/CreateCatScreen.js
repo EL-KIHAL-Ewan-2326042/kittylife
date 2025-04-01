@@ -1,30 +1,37 @@
 // src/screens/CreateCatScreen.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import Background from '../components/ui/Background';
-import { createNewCat } from '../services/storage/CatStorage';
+import StorageService from '../services/storage/storageService';
+import { getDifficulties } from '../config/difficulties';
 
 export default function CreateCatScreen({ navigation }) {
     const [name, setName] = useState('');
     const [breed, setBreed] = useState('');
     const [difficulty, setDifficulty] = useState('normal');
     const [error, setError] = useState('');
+    const difficulties = getDifficulties();
 
     const handleCreate = async () => {
         if (!name.trim()) {
-            setError('Please enter a name for your cat');
+            setError('Veuillez entrer un nom pour votre chat');
             return;
         }
 
         try {
-            const newCat = await createNewCat(name, breed || 'Mixed', difficulty);
+            const newCat = await StorageService.createCat(
+                name.trim(),
+                breed.trim() || 'Mixed',
+                difficulty
+            );
+
             navigation.navigate('Cat', {
                 catId: newCat.id,
                 catName: newCat.name
             });
         } catch (err) {
-            console.error('Error creating cat:', err);
-            setError('Failed to create cat: ' + err.message);
+            console.error('Erreur lors de la création du chat:', err);
+            setError('Échec de la création : ' + err.message);
         }
     };
 
@@ -34,133 +41,121 @@ export default function CreateCatScreen({ navigation }) {
 
     return (
         <Background>
-            <View style={styles.container}>
-                <Text style={styles.title}>Create a New Cat</Text>
+            <ScrollView style={styles.container}>
+                <Text style={styles.title}>Créer un Nouveau Chat</Text>
 
                 {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Name:</Text>
+                    <Text style={styles.label}>Nom:</Text>
                     <TextInput
                         style={styles.input}
                         value={name}
                         onChangeText={setName}
-                        placeholder="Enter cat's name"
+                        placeholder="Entrez le nom du chat"
+                        maxLength={20}
                     />
                 </View>
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Breed:</Text>
+                    <Text style={styles.label}>Race:</Text>
                     <TextInput
                         style={styles.input}
                         value={breed}
                         onChangeText={setBreed}
-                        placeholder="Enter cat's breed"
+                        placeholder="Entrez la race du chat"
+                        maxLength={30}
                     />
                 </View>
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Difficulty:</Text>
+                    <Text style={styles.label}>Difficulté:</Text>
                     <View style={styles.difficultyButtons}>
-                        <TouchableOpacity
-                            style={[
-                                styles.diffButton,
-                                difficulty === 'easy' && styles.activeDiffButton
-                            ]}
-                            onPress={() => handleChangeDifficulty('easy')}
-                        >
-                            <Text style={[
-                                styles.diffButtonText,
-                                difficulty === 'easy' && styles.activeDiffText
-                            ]}>Easy</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                styles.diffButton,
-                                difficulty === 'normal' && styles.activeDiffButton
-                            ]}
-                            onPress={() => handleChangeDifficulty('normal')}
-                        >
-                            <Text style={[
-                                styles.diffButtonText,
-                                difficulty === 'normal' && styles.activeDiffText
-                            ]}>Normal</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                styles.diffButton,
-                                difficulty === 'hard' && styles.activeDiffButton
-                            ]}
-                            onPress={() => handleChangeDifficulty('hard')}
-                        >
-                            <Text style={[
-                                styles.diffButtonText,
-                                difficulty === 'hard' && styles.activeDiffText
-                            ]}>Hard</Text>
-                        </TouchableOpacity>
+                        {difficulties.map(diff => (
+                            <TouchableOpacity
+                                key={diff}
+                                style={[
+                                    styles.diffButton,
+                                    difficulty === diff && styles.activeDiffButton
+                                ]}
+                                onPress={() => handleChangeDifficulty(diff)}
+                            >
+                                <Text style={[
+                                    styles.diffButtonText,
+                                    difficulty === diff && styles.activeDiffButtonText
+                                ]}>
+                                    {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 </View>
 
-                <View style={styles.buttonGroup}>
-                    <TouchableOpacity
-                        style={styles.cancelButton}
-                        onPress={() => navigation.goBack()}
-                    >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.createButton}
-                        onPress={handleCreate}
-                    >
-                        <Text style={styles.createButtonText}>Create</Text>
-                    </TouchableOpacity>
+                <View style={styles.difficultyInfo}>
+                    <Text style={styles.difficultyInfoText}>
+                        {difficulty === 'easy' && "Facile: Le chat perd faim et bonheur lentement."}
+                        {difficulty === 'normal' && "Normal: Équilibre entre défi et plaisir."}
+                        {difficulty === 'hard' && "Difficile: Le chat a besoin de beaucoup d'attention."}
+                        {difficulty === 'baby' && "Bébé: Très faim, très heureux, mais fragile!"}
+                    </Text>
                 </View>
-            </View>
+
+                <TouchableOpacity
+                    style={styles.createButton}
+                    onPress={handleCreate}
+                >
+                    <Text style={styles.createButtonText}>Créer mon chat</Text>
+                </TouchableOpacity>
+            </ScrollView>
         </Background>
     );
 }
 
 const styles = StyleSheet.create({
-    // Styles as defined previously
     container: {
         flex: 1,
         padding: 20,
     },
     title: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 'bold',
         textAlign: 'center',
+        color: 'white',
         marginVertical: 20,
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: -1, height: 1 },
+        textShadowRadius: 10
     },
     formGroup: {
-        marginBottom: 15,
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        borderRadius: 10,
-        padding: 15,
+        marginBottom: 20,
     },
     label: {
         fontSize: 16,
-        marginBottom: 5,
         fontWeight: 'bold',
+        marginBottom: 8,
+        color: 'white',
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: -1, height: 1 },
+        textShadowRadius: 5
     },
     input: {
-        height: 40,
-        borderWidth: 1,
-        borderColor: '#ddd',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         borderRadius: 8,
-        paddingHorizontal: 10,
-        backgroundColor: 'white',
+        padding: 12,
+        fontSize: 16,
     },
     difficultyButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
     },
     diffButton: {
-        flex: 1,
-        padding: 10,
-        backgroundColor: '#e0e0e0',
-        margin: 5,
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        paddingVertical: 10,
+        paddingHorizontal: 15,
         borderRadius: 8,
+        marginVertical: 5,
+        minWidth: '23%',
         alignItems: 'center',
     },
     activeDiffButton: {
@@ -168,46 +163,39 @@ const styles = StyleSheet.create({
     },
     diffButtonText: {
         fontWeight: 'bold',
+        color: '#333',
     },
-    activeDiffText: {
+    activeDiffButtonText: {
         color: 'white',
     },
-    buttonGroup: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 20,
+    difficultyInfo: {
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        padding: 15,
+        borderRadius: 8,
+        marginVertical: 15,
+    },
+    difficultyInfoText: {
+        color: 'white',
+        textAlign: 'center',
+    },
+    errorText: {
+        color: '#ff6b6b',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        padding: 10,
+        borderRadius: 5,
+        marginBottom: 15,
+        textAlign: 'center',
     },
     createButton: {
         backgroundColor: '#4caf50',
         paddingVertical: 15,
-        paddingHorizontal: 25,
         borderRadius: 25,
-        flex: 1,
-        marginLeft: 10,
+        marginTop: 20,
         alignItems: 'center',
     },
     createButtonText: {
         color: 'white',
         fontWeight: 'bold',
         fontSize: 16,
-    },
-    cancelButton: {
-        backgroundColor: '#f44336',
-        paddingVertical: 15,
-        paddingHorizontal: 25,
-        borderRadius: 25,
-        flex: 1,
-        marginRight: 10,
-        alignItems: 'center',
-    },
-    cancelButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    errorText: {
-        color: 'red',
-        textAlign: 'center',
-        marginVertical: 10,
     },
 });

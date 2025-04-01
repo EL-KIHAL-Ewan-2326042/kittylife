@@ -1,8 +1,7 @@
 // src/utils/FileUtils.js
-// Import directly works now with our transformer
-import babyKitty from '../data/difficulties/baby.kitty';
-import kittenKitty from '../data/difficulties/kitten.kitty';
-import lionKitty from '../data/difficulties/lion.kitty';
+const babyKitty = require('../data/difficulties/baby.json');
+const kittenKitty = require('../data/difficulties/kitten.json');
+const lionKitty = require('../data/difficulties/lion.json');
 
 export const getDifficultySettings = (difficultyName) => {
     switch (difficultyName) {

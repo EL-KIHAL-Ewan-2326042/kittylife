@@ -14,28 +14,39 @@ const Stack = createStackNavigator();
 export default function App() {
     return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName="Home">
+            <Stack.Navigator
+                initialRouteName="Home"
+                screenOptions={{
+                    headerStyle: {
+                        backgroundColor: '#4caf50',
+                    },
+                    headerTintColor: '#fff',
+                    headerTitleStyle: {
+                        fontWeight: 'bold',
+                    },
+                }}
+            >
                 <Stack.Screen
                     name="Home"
                     component={HomeScreen}
-                    options={{ title: 'My Virtual Cats' }}
+                    options={{ title: 'Mes Chats Virtuels' }}
                 />
                 <Stack.Screen
                     name="CreateCat"
                     component={CreateCatScreen}
-                    options={{ title: 'Create New Cat' }}
+                    options={{ title: 'Créer un Chat' }}
                 />
                 <Stack.Screen
                     name="Cat"
                     component={CatScreen}
-                    options={({ route }) => ({
-                        title: route.params?.catName || 'My Cat',
+                    options={({ route, navigation }) => ({
+                        title: route.params?.catName || 'Mon Chat',
                         headerRight: () => (
                             <TouchableOpacity
                                 style={{ marginRight: 15 }}
                                 onPress={() => navigation.navigate('Home')}
                             >
-                                <Text style={{ color: 'red' }}>Home</Text>
+                                <Text style={{ color: 'white' }}>Accueil</Text>
                             </TouchableOpacity>
                         )
                     })}

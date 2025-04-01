@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import CatStorageService from '../services/storage/CatStorage';
+import CatStorageService from '../services/storage/./storageService';
 import Cat from '../models/Cat';
 
 export function useCat(catId) {

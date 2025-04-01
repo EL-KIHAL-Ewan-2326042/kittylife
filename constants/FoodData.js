@@ -5,20 +5,20 @@ export const foodItems = [
         name: 'Kibble',
         type: 'regular',
         value: 10,
-        image: require('../assets/food-kibble.png')
+        image: require('../assets/food/food-kibble.png')
     },
     {
         id: 2,
         name: 'Premium Food',
         type: 'premium',
         value: 15,
-        image: require('../assets/food-premium.png')
+        image: require('../assets/food/food-premium.png')
     },
     {
         id: 3,
         name: 'Treat',
         type: 'treat',
         value: 5,
-        image: require('../assets/food-treat.png')
+        image: require('../assets/food/food-treat.png')
     }
 ];

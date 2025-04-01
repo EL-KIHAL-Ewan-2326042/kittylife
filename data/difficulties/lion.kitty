@@ -1,8 +1,0 @@
-{
-  "fullnessDecayMultiplier": 1.5,
-  "happinessDecayMultiplier": 1.3,
-  "feedingBoostMultiplier": 0.7,
-  "playingBoostMultiplier": 0.8,
-  "healthDecayMultiplier": 1.5,
-  "description": "Mode difficile pour joueurs expérimentés. Votre chat demande une attention constante."
-}

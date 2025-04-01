@@ -1,25 +1,48 @@
 // src/screens/HomeScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import Background from '../components/ui/Background';
-import { getAllCats, createNewCat } from '../services/storage/CatStorage';
+import StorageService from '../services/storage/storageService';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, route }) {
     const [cats, setCats] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // Reload cats when navigating back to this screen
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            loadCats();
+        });
+
+        return unsubscribe;
+    }, [navigation]);
+
+    // Initial load
     useEffect(() => {
         loadCats();
     }, []);
 
     const loadCats = async () => {
         setLoading(true);
-        const catList = await getAllCats();
-        setCats(catList);
-        setLoading(false);
+        try {
+            const catList = await StorageService.getAllCats();
+            setCats(catList);
+        } catch (error) {
+            Alert.alert('Erreur', 'Impossible de charger vos chats');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleCreateCat = () => {
+        if (cats.length >= 3) {
+            Alert.alert(
+                'Limite atteinte',
+                'Vous ne pouvez pas avoir plus de 3 chats.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
         navigation.navigate('CreateCat');
     };
 
@@ -33,13 +56,18 @@ export default function HomeScreen({ navigation }) {
         >
             <Text style={styles.catName}>{item.name}</Text>
             <Text style={styles.catBreed}>{item.breed}</Text>
+            <View style={styles.statsContainer}>
+                <Text style={styles.statText}>❤️ {Math.round(item.health)}%</Text>
+                <Text style={styles.statText}>🍽️ {Math.round(item.fullness)}%</Text>
+                <Text style={styles.statText}>😊 {Math.round(item.happiness)}%</Text>
+            </View>
         </TouchableOpacity>
     );
 
     return (
         <Background>
             <View style={styles.container}>
-                <Text style={styles.title}>Your Virtual Cats</Text>
+                <Text style={styles.title}>Vos Chats Virtuels</Text>
 
                 {cats.length > 0 ? (
                     <FlatList
@@ -50,7 +78,7 @@ export default function HomeScreen({ navigation }) {
                     />
                 ) : (
                     <Text style={styles.emptyCatsMessage}>
-                        {loading ? 'Loading...' : 'No cats yet. Create your first cat!'}
+                        {loading ? 'Chargement...' : 'Pas encore de chats. Créez votre premier chat!'}
                     </Text>
                 )}
 
@@ -58,7 +86,7 @@ export default function HomeScreen({ navigation }) {
                     style={styles.createButton}
                     onPress={handleCreateCat}
                 >
-                    <Text style={styles.createButtonText}>Create New Cat</Text>
+                    <Text style={styles.createButtonText}>Créer un nouveau chat</Text>
                 </TouchableOpacity>
             </View>
         </Background>
@@ -85,7 +113,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     catItem: {
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
         padding: 15,
         borderRadius: 10,
         marginVertical: 8,
@@ -97,6 +125,15 @@ const styles = StyleSheet.create({
     catBreed: {
         fontSize: 14,
         color: '#666',
+        marginBottom: 10,
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 5,
+    },
+    statText: {
+        fontSize: 12,
     },
     emptyCatsMessage: {
         fontSize: 16,
