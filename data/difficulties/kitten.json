@@ -1,0 +1,8 @@
+{
+  "fullnessDecayMultiplier": 1.0,
+  "happinessDecayMultiplier": 1.0,
+  "feedingBoostMultiplier": 1.0,
+  "playingBoostMultiplier": 1.0,
+  "healthDecayMultiplier": 1.0,
+  "description": "Difficulté standard. Une expérience équilibrée."
+}
