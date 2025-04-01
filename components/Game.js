@@ -1,56 +1,84 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Button } from 'react-native';
-import CatManager from '../gameLogic/CatManager';
+import React, { Component } from 'react';
+import GameBoard from './GameBoard';
+import ScorePanel from './cat/StatusBars';
+import GameController from '../controllers/GameController';
+import '../styles/Game.css';
 
-export default function Game() {
-    const [catManager, setCatManager] = useState(null);
-    const [cat, setCat] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const initCat = async () => {
-            const manager = new CatManager('pelo');
-            const success = await manager.loadCat();
-
-            if (!success) {
-                await manager.createNewCat();
-            }
-
-            setCatManager(manager);
-            setCat(manager.cat);
-            setLoading(false);
+class Game extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            score: 0,
+            level: 1,
+            isPlaying: false,
+            gameOver: false
         };
 
-        initCat();
-    }, []);
-
-    const updateCatState = () => {
-        setCat({...catManager.cat});
-    };
-
-    const handleFeed = () => {
-        catManager.feedCat();
-        updateCatState();
-    };
-
-    const handlePlay = () => {
-        catManager.playCat();
-        updateCatState();
-    };
-
-    if (loading) {
-        return <Text>Loading...</Text>;
+        this.gameController = new GameController();
     }
 
-    return (
-        <View>
-            <Text>Name: {cat.name}</Text>
-            <Text>Health: {cat.health}</Text>
-            <Text>Fullness: {cat.fullness}</Text>
-            <Text>Happiness: {cat.happiness}</Text>
+    componentDidMount() {
+        this.gameController.initialize(this.updateGameState);
+    }
 
-            <Button title="Feed" onPress={handleFeed} />
-            <Button title="Play" onPress={handlePlay} />
-        </View>
-    );
+    componentWillUnmount() {
+        this.gameController.cleanup();
+    }
+
+    updateGameState = (newState) => {
+        this.setState(newState);
+    }
+
+    startGame = () => {
+        this.setState({ isPlaying: true, gameOver: false });
+        this.gameController.startGame();
+    }
+
+    pauseGame = () => {
+        this.setState({ isPlaying: false });
+        this.gameController.pauseGame();
+    }
+
+    resetGame = () => {
+        this.setState({
+            score: 0,
+            level: 1,
+            isPlaying: false,
+            gameOver: false
+        });
+        this.gameController.resetGame();
+    }
+
+    render() {
+        const { score, level, isPlaying, gameOver } = this.state;
+
+        return (
+            <div className="game-container">
+                <ScorePanel
+                    score={score}
+                    level={level}
+                />
+
+                <GameBoard
+                    gameController={this.gameController}
+                    isPlaying={isPlaying}
+                    gameOver={gameOver}
+                />
+
+                <div className="game-controls">
+                    {!isPlaying && !gameOver && (
+                        <button onClick={this.startGame}>Start Game</button>
+                    )}
+                    {isPlaying && (
+                        <button onClick={this.pauseGame}>Pause Game</button>
+                    )}
+                    {(gameOver || isPlaying) && (
+                        <button onClick={this.resetGame}>Reset Game</button>
+                    )}
+                </div>
+            </div>
+        );
+    }
 }
+
+export default Game;

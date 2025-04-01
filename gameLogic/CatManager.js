@@ -1,71 +1,65 @@
-import { saveCat, loadCat } from '../services/FileStorageService';
-import { getGameConstants, DIFFICULTY_LEVELS } from '../services/DifficultyService';
+// services/CatManager.js
 import Cat from '../models/Cat';
 
 export default class CatManager {
-    constructor(catName) {
-        this.cat = null;
-        this.catName = catName;
-        this.gameConstants = null;
-        this.difficulty = DIFFICULTY_LEVELS.MEDIUM;
+    constructor() {
+        this.cats = [];
+        this.nextId = 1;
     }
 
-    async loadGameConstants() {
-        this.gameConstants = await getGameConstants(this.difficulty);
+    addCat(name, breed) {
+        const cat = new Cat(this.nextId++, name, breed);
+        this.cats.push(cat);
+        return cat;
     }
 
+    getCat(id) {
+        return this.cats.find(cat => cat.id === id) || null;
+    }
 
-    async loadCat() {
-        await this.loadGameConstants();
-        this.cat = await loadCat(this.catName);
-        if (!this.cat) {
-            return false;
-        }
-        this.updateCatStats();
+    getAllCats() {
+        return [...this.cats];
+    }
+
+    updateCat(id, updates) {
+        const cat = this.getCat(id);
+        if (!cat) return false;
+
+        Object.keys(updates).forEach(key => {
+            if (key in cat && key !== 'id') {
+                cat[key] = updates[key];
+            }
+        });
+
+        cat.updateTimestamp();
         return true;
     }
 
-    async createNewCat() {
-        await this.loadGameConstants();
-        this.cat = new Cat(Date.now().toString(), this.catName);
-        return await saveCat(this.cat);
+    deleteCat(id) {
+        const index = this.cats.findIndex(cat => cat.id === id);
+        if (index === -1) return false;
+
+        this.cats.splice(index, 1);
+        return true;
     }
 
-    updateCatStats() {
-        if (!this.cat) return;
-
+    simulateTimePassage() {
         const now = new Date();
-        const lastUpdated = new Date(this.cat.lastUpdated);
-        const hoursDiff = (now - lastUpdated) / (1000 * 60 * 60);
 
-        this.cat.fullness = Math.max(0, this.cat.fullness - (hoursDiff * 5));
-        this.cat.happiness = Math.max(0, this.cat.happiness - (hoursDiff * 3));
+        this.cats.forEach(cat => {
+            const lastUpdated = new Date(cat.lastUpdated);
+            const hoursPassed = (now - lastUpdated) / (1000 * 60 * 60);
 
-        if (this.cat.fullness < 30) {
-            this.cat.health = Math.max(0, this.cat.health - (hoursDiff * 2));
-        }
+            if (hoursPassed > 1) {
+                cat.fullness = Math.max(0, cat.fullness - (hoursPassed * 5));
+                cat.happiness = Math.max(0, cat.happiness - (hoursPassed * 3));
 
-        this.cat.lastUpdated = now.toISOString();
-        saveCat(this.cat);
-    }
+                if (cat.fullness < 30 || cat.happiness < 20) {
+                    cat.health = Math.max(0, cat.health - (hoursPassed * 2));
+                }
 
-    feedCat() {
-        if (!this.cat) return false;
-        this.cat.fullness = Math.min(100, this.cat.fullness + 30);
-        this.cat.happiness += 5;
-        saveCat(this.cat);
-        return true;
-    }
-
-    playCat() {
-        if (!this.cat) return false;
-        this.cat.happiness = Math.min(100, this.cat.happiness + 20);
-        this.cat.fullness = Math.max(0, this.cat.fullness - 10);
-        saveCat(this.cat);
-        return true;
-    }
-
-    isCatAlive() {
-        return this.cat && this.cat.health > 0;
+                cat.updateTimestamp();
+            }
+        });
     }
 }
