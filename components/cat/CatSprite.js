@@ -1,37 +1,31 @@
-// src/components/cat/CatSprite.js
+// components/cat/CatSprite.js
 import React, { useState } from 'react';
 import { View, Image, StyleSheet, Animated, TouchableWithoutFeedback } from 'react-native';
 
-export default function CatSprite({ animation, mood, onFeedWithFood }) {
-    const [isEating, setIsEating] = useState(false);
-    const [feedback, setFeedback] = useState(null);
-
-    // Handle the drop event
-    const handleFeedDrop = () => {
-        if (onFeedWithFood) {
-            setIsEating(true);
-            setFeedback("+10");
-
-            // Reset the state after animation completes
-            setTimeout(() => {
-                setIsEating(false);
-                setFeedback(null);
-            }, 1500);
-        }
-    };
-
-    // Choose the right sprite based on mood and animation
+export default function CatSprite({ animation, mood }) {
+    // Choisir le bon sprite en fonction de l'humeur et de l'animation
     const getSprite = () => {
-        if (isEating) {
-            return require('../../assets/cat-eating.gif');
-        }
-
         switch(animation) {
+            case 'eating':
+                return require('../../assets/cat-eating.gif');
             case 'playing':
                 return require('../../assets/cat-playing.gif');
+            case 'playing_laser':
+                return require('../../assets/cat-playing-laser.gif');
+            case 'playing_toy':
+                return require('../../assets/cat-playing-toy.gif');
+            case 'playing_petting':
+                return require('../../assets/cat-petting.gif');
             case 'healing':
                 return require('../../assets/cat-healing.gif');
+            case 'healing_medicine':
+                return require('../../assets/cat-medicine.gif');
+            case 'healing_brushing':
+                return require('../../assets/cat-brushing.gif');
+            case 'healing_petting':
+                return require('../../assets/cat-petting.gif');
             default:
+                // État normal basé sur l'humeur
                 switch(mood) {
                     case 'happy':
                         return require('../../assets/cat-happy.gif');
@@ -48,39 +42,24 @@ export default function CatSprite({ animation, mood, onFeedWithFood }) {
     };
 
     return (
-        <TouchableWithoutFeedback onPress={handleFeedDrop}>
-            <View style={styles.container}>
-                <Image
-                    source={getSprite()}
-                    style={styles.catImage}
-                    resizeMode="contain"
-                />
-                {feedback && (
-                    <Animated.Text style={styles.feedbackText}>
-                        {feedback}
-                    </Animated.Text>
-                )}
-            </View>
-        </TouchableWithoutFeedback>
+        <View style={styles.container}>
+            <Image
+                source={getSprite()}
+                style={styles.catImage}
+                resizeMode="contain"
+            />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flex: 2,
-        justifyContent: 'center',
         alignItems: 'center',
-        position: 'relative',
+        marginTop: 300,
     },
     catImage: {
-        width: 250,
-        height: 250,
-    },
-    feedbackText: {
-        position: 'absolute',
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#4caf50',
-        top: 80,
+        alignSelf: 'center',
+        width: 180,
+        height: 180,
     }
 });

@@ -1,4 +1,3 @@
-// src/screens/CreateCatScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import Background from '../components/ui/Background';
@@ -93,10 +92,9 @@ export default function CreateCatScreen({ navigation }) {
 
                 <View style={styles.difficultyInfo}>
                     <Text style={styles.difficultyInfoText}>
-                        {difficulty === 'easy' && "Facile: Le chat perd faim et bonheur lentement."}
-                        {difficulty === 'normal' && "Normal: Équilibre entre défi et plaisir."}
-                        {difficulty === 'hard' && "Difficile: Le chat a besoin de beaucoup d'attention."}
                         {difficulty === 'baby' && "Bébé: Très faim, très heureux, mais fragile!"}
+                        {difficulty === 'kitten' && "Chaton: Le chat perd faim et bonheur lentement."}
+                        {difficulty === 'lion' && "Lion: Un bébé lion qui a besoin de beaucoup d'attention."}
                     </Text>
                 </View>
 

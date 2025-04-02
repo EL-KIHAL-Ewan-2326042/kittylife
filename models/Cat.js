@@ -1,6 +1,5 @@
 import { getDifficultySettings } from '../config/difficulties';
 
-// src/models/Cat.js
 class Cat {
     constructor(id, name, breed, difficulty) {
         this.id = id;
@@ -18,18 +17,16 @@ class Cat {
         const now = Date.now();
         const secondsPassed = (now - this.lastUpdated) / 1000;
 
-        // Si aucun temps n'est passé, ne pas mettre à jour
         if (secondsPassed <= 0) {
             return this;
         }
 
-        // Utiliser les paramètres de difficulté
         const settings = getDifficultySettings(this.difficulty);
+        const { BASE_RATES } = require('../config/difficulties');
 
-        // baby: -1 toutes les 10s, kitten: -1 toutes les 5s, lion: -1 toutes les 2s
-        const fullnessDecayRate = (1/10) * settings.fullnessDecayMultiplier;
-        const happinessDecayRate = (1/15) * settings.happinessDecayMultiplier;
-        const healthDecayRate = (1/20) * settings.healthDecayMultiplier;
+        const fullnessDecayRate = BASE_RATES.fullnessDecay * settings.fullnessDecayMultiplier;
+        const happinessDecayRate = BASE_RATES.happinessDecay * settings.happinessDecayMultiplier;
+        const healthDecayRate = BASE_RATES.healthDecay * settings.healthDecayMultiplier;
 
         this.fullness = Math.max(0, this.fullness - secondsPassed * fullnessDecayRate);
         this.happiness = Math.max(0, this.happiness - secondsPassed * happinessDecayRate);
@@ -37,7 +34,7 @@ class Cat {
         const healthPenalty = (
             (this.fullness < 30 ? 1.5 : 0) +
             (this.happiness < 30 ? 1.5 : 0) +
-            1 // Diminution de base
+            1
         );
 
         this.health = Math.max(0, this.health - secondsPassed * healthDecayRate * healthPenalty);
@@ -46,34 +43,26 @@ class Cat {
         return this;
     }
 
-// Dans models/Cat.js, ajoutez cette méthode
-    feed(value, food = null) {
-        // Mettre à jour l'état du chat après avoir été nourri
-        this.update(); // Mise à jour avant de nourrir
+    feed(foodValue, food = null) {
+        this.update();
 
-        // Appliquer les effets de la nourriture selon la difficulté
-        const feedingMultiplier = this.difficulty?.feedingBoostMultiplier || 1.0;
+        const settings = getDifficultySettings(this.difficulty);
 
-        // Mise à jour des attributs
-        this.energy = Math.min(100, (this.energy || 0) + (value * feedingMultiplier));
-        this.hunger = Math.max(0, (this.hunger || 100) - (value * 1.5 * feedingMultiplier));
+        const effectiveValue = foodValue;
 
-        // Modifier la plénitude (fullness) en fonction de la nourriture
-        this.fullness = Math.min(100, (this.fullness || 0) + (value * feedingMultiplier));
+        this.fullness = Math.min(100, this.fullness + effectiveValue);
 
-        // Effets spéciaux selon le type de nourriture
         if (food) {
             switch (food.type) {
                 case 'premium':
-                    this.health = Math.min(100, (this.health || 0) + 5);
+                    this.health = Math.min(100, this.health + settings.healingReward / 5);
                     break;
                 case 'treat':
-                    this.happiness = Math.min(100, (this.happiness || 0) + 10);
+                    this.happiness = Math.min(100, this.happiness + settings.playingReward / 2);
                     break;
             }
         }
 
-        // Mettre à jour le timestamp du dernier repas
         this.lastFed = Date.now();
         this.lastUpdated = Date.now();
 
@@ -120,11 +109,6 @@ class Cat {
             lastUpdated: this.lastUpdated,
             created: this.created
         };
-    }
-
-    // Pour la compatibilité avec StatusBars component
-    get hunger() {
-        return this.fullness;
     }
 }
 

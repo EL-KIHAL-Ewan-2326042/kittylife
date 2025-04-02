@@ -1,155 +1,103 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet, Modal, Image, PanResponder, Animated } from 'react-native';
-import { getDifficultySettings } from '../config/difficulties';
+import React, { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Background from '../components/ui/Background';
-import StorageService from '../services/storage/storageService';
+import StatusBars from '../components/ui/StatusBars';
 import CatSprite from '../components/cat/CatSprite';
-import StatusBars from '../components/cat/StatusBars';
-
-// Liste des nourritures disponibles
-const foodItems = [
-    { id: 'basic', name: 'Croquettes', type: 'basic', image: require('../assets/food/food-kibble.png'), value: 15 },
-    { id: 'premium', name: 'Premium', type: 'premium', image: require('../assets/food/food-premium.png'), value: 30 },
-    { id: 'treat', name: 'Friandise', type: 'treat', image: require('../assets/food/food-treat.png'), value: 10 }
-];
-
-// Composant pour un élément de nourriture draggable
-const DraggableFoodItem = ({ food, onDrop }) => {
-    const pan = useRef(new Animated.ValueXY()).current;
-    const [dragging, setDragging] = useState(false);
-
-    const panResponder = PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
-            setDragging(true);
-            pan.setOffset({
-                x: pan.x._value,
-                y: pan.y._value
-            });
-            pan.setValue({ x: 0, y: 0 });
-        },
-        onPanResponderMove: Animated.event([
-            null,
-            { dx: pan.x, dy: pan.y }
-        ], { useNativeDriver: false }),
-        onPanResponderRelease: (e, gesture) => {
-            setDragging(false);
-            // Vérifier si on est au-dessus de la zone du chat
-            // La logique dépendra de votre mise en page
-            // Pour l'exemple, disons que si y < 300, c'est sur le chat
-            if (gesture.moveY < 300) {
-                onDrop(food);
-            }
-            // Réinitialiser la position
-            Animated.spring(pan, {
-                toValue: { x: 0, y: 0 },
-                friction: 5,
-                useNativeDriver: false
-            }).start();
-        }
-    });
-
-    return (
-        <Animated.View
-            {...panResponder.panHandlers}
-            style={[
-                styles.foodItem,
-                dragging && styles.dragging,
-                { transform: [{ translateX: pan.x }, { translateY: pan.y }] }
-            ]}
-        >
-            <Image source={food.image} style={styles.foodImage} />
-            <Text style={styles.foodName}>{food.name}</Text>
-        </Animated.View>
-    );
-};
-
-const FoodList = ({ visible, onClose, onFoodSelect }) => (
-    <Modal
-        visible={visible}
-        transparent={true}
-        animationType="slide"
-    >
-        <View style={styles.modalOverlay}>
-            <View style={styles.foodModal}>
-                <Text style={styles.foodModalTitle}>Choisir une nourriture</Text>
-                <Text style={styles.foodInstructions}>
-                    Faites glisser un aliment sur votre chat
-                </Text>
-
-                <View style={styles.foodItemsContainer}>
-                    {foodItems.map(food => (
-                        <DraggableFoodItem
-                            key={food.id}
-                            food={food}
-                            onDrop={onFoodSelect}
-                        />
-                    ))}
-                </View>
-
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                    <Text style={styles.closeButtonText}>Fermer</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    </Modal>
-);
-
-
-const ActionButtons = ({ onFeed, onPlay, onHeal, disabled }) => (
-    <View style={styles.actionsContainer}>
-        <TouchableOpacity
-            style={[styles.actionButton, disabled && styles.disabledButton]}
-            onPress={onFeed}
-            disabled={disabled}
-        >
-            <Text style={styles.actionButtonText}>Nourrir</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-            style={[styles.actionButton, disabled && styles.disabledButton]}
-            onPress={onPlay}
-            disabled={disabled}
-        >
-            <Text style={styles.actionButtonText}>Jouer</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-            style={[styles.actionButton, disabled && styles.disabledButton]}
-            onPress={onHeal}
-            disabled={disabled}
-        >
-            <Text style={styles.actionButtonText}>Soigner</Text>
-        </TouchableOpacity>
-    </View>
-);
+import ActionButtons from '../components/cat/ActionButtons';
+import { FoodList } from '../components/food/FoodList';
+import { ActivityList } from '../components/activities/ActivityList';
+import { HealingList } from '../components/healing/HealingList';
+import StorageService from '../services/storage/storageService';
+import {getDifficultySettings} from "../utils/FileUtils";
 
 export default function CatScreen({ route, navigation }) {
     const { catId } = route.params;
     const [cat, setCat] = useState(null);
     const [loading, setLoading] = useState(true);
     const [animation, setAnimation] = useState(null);
-    const [selectedFood, setSelectedFood] = useState(null);
     const [showFoodList, setShowFoodList] = useState(false);
-    const [catZoneLayout, setCatZoneLayout] = useState(null);
+    const [showActivityList, setShowActivityList] = useState(false);
+    const [showHealingList, setShowHealingList] = useState(false);
+    const [updateInterval, setUpdateIntervalRef] = useState(null);
+    const [catPosition, setCatPosition] = useState(null);
+    const catContainerRef = useRef(null);
 
-    useEffect(() => {
+
+    React.useEffect(() => {
         loadCat();
 
-        // Mettre à jour le chat toutes les secondes pour voir les barres diminuer en temps réel
-        const interval = setInterval(async () => {
-            if (cat) {
-                const updatedCat = cat.update();
-                setCat({...updatedCat});
-                // Sauvegarder moins fréquemment pour éviter trop d'écritures
-                if (Math.random() < 0.1) { // ~10% des updates
-                    await StorageService.saveCat(updatedCat);
-                }
+        // On nettoie bien l'intervalle préexistant
+        return () => {
+            if (updateInterval) {
+                clearInterval(updateInterval);
             }
+        };
+    }, [catId]);
+
+// useEffect séparé pour la mise à jour des statistiques
+    React.useEffect(() => {
+        if (!cat) return;
+
+        // Obtenir les paramètres de difficulté
+        const settings = getDifficultySettings(cat.difficulty);
+        const { BASE_RATES } = require('../config/difficulties');
+
+        // Calculer les taux de décroissance standardisés
+        const fullnessDecayRate = BASE_RATES.fullnessDecay * settings.fullnessDecayMultiplier;
+        const happinessDecayRate = BASE_RATES.happinessDecay * settings.happinessDecayMultiplier;
+        const healthDecayRate = BASE_RATES.healthDecay * settings.healthDecayMultiplier;
+
+        // Créer un nouvel intervalle
+        const intervalRef = setInterval(() => {
+            setCat(currentCat => {
+                if (!currentCat) return currentCat;
+
+                // Mise à jour avec les taux standardisés
+                const updatedCat = {...currentCat};
+                updatedCat.fullness = Math.max(0, updatedCat.fullness - fullnessDecayRate);
+                updatedCat.happiness = Math.max(0, updatedCat.happiness - happinessDecayRate);
+
+                // Calculer la pénalité de santé
+                const healthPenalty = (
+                    (updatedCat.fullness < 30 ? 1.5 : 0) +
+                    (updatedCat.happiness < 30 ? 1.5 : 0) +
+                    1 // Diminution de base
+                );
+
+                updatedCat.health = Math.max(0, updatedCat.health - healthDecayRate * healthPenalty);
+
+                // Sauvegarde périodique
+                if (Math.random() < 0.1) {
+                    StorageService.saveCat(updatedCat);
+                }
+
+                return updatedCat;
+            });
         }, 1000);
 
-        return () => clearInterval(interval);
-    }, [cat?.id]); // Dépendance sur cat.id pour recréer l'intervalle si le chat change
+        setUpdateIntervalRef(intervalRef);
 
-    // Dans CatScreen.js, modifiez le loadCat pour ajouter la fonction getStatus si nécessaire
+        return () => {
+            clearInterval(intervalRef);
+        };
+    }, [cat?.id]);
+
+    const measureCatPosition = () => {
+        if (catContainerRef.current) {
+            catContainerRef.current.measure((x, y, width, height, pageX, pageY) => {
+                // Ajuster la zone de détection pour correspondre à la zone visible du chat
+                const hitboxPadding = 30; // Réduire cette valeur pour un hitbox plus précis
+
+                setCatPosition({
+                    x: pageX + hitboxPadding,
+                    y: pageY + hitboxPadding,
+                    width: width - (2 * hitboxPadding),
+                    height: height - (2 * hitboxPadding)
+                });
+            });
+        }
+    };
+
     const loadCat = async () => {
         setLoading(true);
         try {
@@ -160,24 +108,9 @@ export default function CatScreen({ route, navigation }) {
                 ]);
                 return;
             }
-
-            // Ajout des méthodes manquantes si nécessaire
-            if (!loadedCat.getStatus) {
-                loadedCat.getStatus = function() {
-                    return {
-                        energy: this.energy || 100,
-                        hunger: this.hunger || 0,
-                        happiness: this.happiness || 100,
-                        health: this.health || 100,
-                        fullness: this.fullness || 50
-                    };
-                };
-            }
-
             setCat(loadedCat);
 
-            // Si le chat est mort, afficher une alerte
-            if (!loadedCat.isAlive()) {
+            if (loadedCat.health < 30) {
                 Alert.alert(
                     'Oh non!',
                     `${loadedCat.name} est malade et a besoin de soins urgents!`,
@@ -192,77 +125,39 @@ export default function CatScreen({ route, navigation }) {
         }
     };
 
-    const measureCatZone = (event) => {
-        const { x, y, width, height } = event.nativeEvent.layout;
-        setCatZoneLayout({ x, y, width, height });
-    };
-
-    const handleFeed = () => {
-        // Afficher la liste de nourriture au lieu de nourrir directement
-        setShowFoodList(true);
-    };
-
-
-    const handlePlay = async () => {
-        if (!cat) return;
-        try {
-            const updatedCat = cat.play();
-            await StorageService.saveCat(updatedCat);
-            await loadCat(); // Recharger les données du chat
-            Alert.alert('Génial!', `${cat.name} s'est bien amusé!`);
-        } catch (error) {
-            Alert.alert('Erreur', 'Impossible de jouer avec le chat');
-        }
-    };
-
-    const handleHeal = async () => {
-        if (!cat) return;
-        try {
-            const updatedCat = cat.heal();
-            await StorageService.saveCat(updatedCat);
-            await loadCat(); // Recharger les données du chat
-            Alert.alert('Soigné!', `${cat.name} se sent mieux!`);
-        } catch (error) {
-            Alert.alert('Erreur', 'Impossible de soigner le chat');
-        }
-    };
-
-    const handleFoodSelect = (food) => {
-        setSelectedFood(food);
-        feedCat(food);
-        setShowFoodList(false);
-    };
 
     const feedCat = async (food) => {
         if (!cat) return;
 
+        // Nettoyer l'intervalle précédent
+        if (updateInterval) {
+            clearInterval(updateInterval);
+            setUpdateIntervalRef(null);
+        }
+
         try {
-            // Créer une copie correcte du chat avec toutes les méthodes préservées
-            let updatedCat;
-            if (typeof cat.feed === 'function') {
-                updatedCat = cat.feed(food.value, food);
-            } else {
-                // Si le chat n'a pas de méthode feed, préserver son identité
-                updatedCat = {...cat};
-                updatedCat.id = cat.id;  // S'assurer que l'ID est préservé
-                updatedCat.energy = Math.min(100, (updatedCat.energy || 0) + food.value);
-                updatedCat.hunger = Math.max(0, (updatedCat.hunger || 100) - (food.value * 1.5));
-                updatedCat.fullness = Math.min(100, (updatedCat.fullness || 0) + food.value);
+            // Animation de nourriture
+            setAnimation('eating');
 
-                if (food.type === 'premium') {
-                    updatedCat.health = Math.min(100, (updatedCat.health || 0) + 5);
-                } else if (food.type === 'treat') {
-                    updatedCat.happiness = Math.min(100, (updatedCat.happiness || 0) + 10);
-                }
+            const settings = getDifficultySettings(cat.difficulty);
 
-                updatedCat.lastFed = Date.now();
-                updatedCat.lastUpdated = Date.now();
+            const updatedCat = {...cat};
+            updatedCat.fullness = Math.min(100, updatedCat.fullness + food.value);
+
+            if (food.type === 'premium') {
+                const healBonus = settings.healingReward ? settings.healingReward / 5 : 10;
+                updatedCat.health = Math.min(100, updatedCat.health + healBonus);
+            } else if (food.type === 'treat') {
+                const happinessBonus = settings.playingReward ? settings.playingReward / 2 : 15;
+                updatedCat.happiness = Math.min(100, updatedCat.happiness + happinessBonus);
             }
 
+            updatedCat.lastFed = Date.now();
+
+            // Sauvegarder les changements
             await StorageService.saveCat(updatedCat);
             setCat({...updatedCat});
 
-            // Message personnalisé selon le type de nourriture
             let message = `${cat.name} a été nourri!`;
             if (food) {
                 switch (food.type) {
@@ -276,13 +171,143 @@ export default function CatScreen({ route, navigation }) {
             }
 
             Alert.alert('Miam!', message);
+
+            setTimeout(() => {
+                setAnimation(null);
+
+                // Créer un nouvel intervalle qui utilise une fonction de mise à jour
+                // pour toujours avoir accès à la dernière version de l'état
+                const interval = setInterval(() => {
+                    setCat(currentCat => {
+                        if (!currentCat) return currentCat;
+
+                        const settings = getDifficultySettings(currentCat.difficulty);
+
+                        const fullnessDecayRate = (1/10) * settings.fullnessDecayMultiplier;
+                        const happinessDecayRate = (1/15) * settings.happinessDecayMultiplier;
+                        const healthDecayRate = (1/20) * settings.healthDecayMultiplier;
+
+                        const updatedCat = {...currentCat};
+                        updatedCat.fullness = Math.max(0, updatedCat.fullness - fullnessDecayRate);
+                        updatedCat.happiness = Math.max(0, updatedCat.happiness - happinessDecayRate);
+
+                        // Calculer la pénalité de santé
+                        const healthPenalty = (
+                            (updatedCat.fullness < 30 ? 1.5 : 0) +
+                            (updatedCat.happiness < 30 ? 1.5 : 0) +
+                            1 // Diminution de base
+                        );
+
+                        updatedCat.health = Math.max(0, updatedCat.health - healthDecayRate * healthPenalty);
+
+                        return updatedCat;
+                    });
+                }, 1000);
+
+                setUpdateIntervalRef(interval);
+            }, 2000);
+
         } catch (error) {
             console.error('Erreur lors du nourrissage:', error);
             Alert.alert('Erreur', 'Impossible de nourrir le chat');
+            setAnimation(null);
         }
     };
 
-    const handleDelete = () => {
+    const playCat = async (activity) => {
+        if (!cat) return;
+
+        try {
+            // Animation de jeu
+            setAnimation(activity.animation || 'playing');
+
+            // Mise à jour des statistiques
+            const updatedCat = {...cat};
+            updatedCat.happiness = Math.min(100, (updatedCat.happiness || 0) + activity.value);
+            // Le jeu fatigue légèrement le chat
+            updatedCat.energy = Math.max(0, (updatedCat.energy || 100) - (activity.value * 0.5));
+            updatedCat.lastPlayed = Date.now();
+
+            // Sauvegarder les changements
+            await StorageService.saveCat(updatedCat);
+            setCat({...updatedCat});
+
+            let message = `${cat.name} s'est bien amusé!`;
+            switch (activity.id) {
+                case 'laser':
+                    message = `${cat.name} a adoré courir après le pointeur laser!`;
+                    break;
+                case 'toy':
+                    message = `${cat.name} s'amuse comme un fou avec la souris en peluche!`;
+                    break;
+                case 'petting':
+                    message = `${cat.name} ronronne pendant que vous le caressez!`;
+                    break;
+            }
+
+            Alert.alert('Génial!', message);
+
+            // Réinitialiser l'animation après 3 secondes
+            setTimeout(() => {
+                setAnimation(null);
+            }, 3000);
+
+        } catch (error) {
+            console.error('Erreur lors du jeu:', error);
+            Alert.alert('Erreur', 'Impossible de jouer avec le chat');
+            setAnimation(null);
+        }
+    };
+
+    const healCat = async (healing) => {
+        if (!cat) return;
+
+        try {
+            // Animation de soin
+            setAnimation(healing.animation || 'healing');
+
+            // Mise à jour des statistiques
+            const updatedCat = {...cat};
+            updatedCat.health = Math.min(100, (updatedCat.health || 0) + healing.value);
+
+            if (healing.id === 'petting') {
+                updatedCat.happiness = Math.min(100, (updatedCat.happiness || 0) + 5);
+            }
+
+            updatedCat.lastHealed = Date.now();
+
+            // Sauvegarder les changements
+            await StorageService.saveCat(updatedCat);
+            setCat({...updatedCat});
+
+            let message = `${cat.name} se sent mieux!`;
+            switch (healing.id) {
+                case 'medicine':
+                    message = `${cat.name} n'aime pas le goût du médicament, mais ça fonctionne!`;
+                    break;
+                case 'brushing':
+                    message = `Le pelage de ${cat.name} est maintenant propre et brillant!`;
+                    break;
+                case 'petting':
+                    message = `Les câlins font beaucoup de bien à ${cat.name}!`;
+                    break;
+            }
+
+            Alert.alert('Soigné!', message);
+
+            // Réinitialiser l'animation après 2 secondes
+            setTimeout(() => {
+                setAnimation(null);
+            }, 2000);
+
+        } catch (error) {
+            console.error('Erreur lors du soin:', error);
+            Alert.alert('Erreur', 'Impossible de soigner le chat');
+            setAnimation(null);
+        }
+    };
+
+    const deleteCat = () => {
         Alert.alert(
             'Confirmation',
             `Êtes-vous sûr de vouloir abandonner ${cat.name}?`,
@@ -304,6 +329,18 @@ export default function CatScreen({ route, navigation }) {
         );
     };
 
+    const handleFeed = () => {
+        setShowFoodList(true);
+    };
+
+    const handlePlay = () => {
+        setShowActivityList(true);
+    };
+
+    const handleHeal = () => {
+        setShowHealingList(true);
+    };
+
     if (loading || !cat) {
         return (
             <Background>
@@ -317,31 +354,62 @@ export default function CatScreen({ route, navigation }) {
     return (
         <Background>
             <View style={styles.container}>
-                <StatusBars cat={cat} />
 
-                <View onLayout={measureCatZone} style={styles.catContainer}>
+                <TouchableOpacity style={styles.deleteButton} onPress={deleteCat}>
+                    <Text style={styles.deleteButtonText}>Abandonner {cat.name}</Text>
+                </TouchableOpacity>
+
+                <View
+                    ref={catContainerRef}
+                    onLayout={measureCatPosition}
+                    style={styles.catContainer}>
                     <CatSprite
                         animation={animation}
-                        mood={cat.getMood ? cat.getMood() : 'content'}
+                        mood={cat.health < 30 ? 'sick' : (cat.happiness > 70 ? 'happy' : 'content')}
                     />
                 </View>
 
+
                 <ActionButtons
+                    onBack={() => navigation.goBack()}
                     onFeed={handleFeed}
                     onPlay={handlePlay}
                     onHeal={handleHeal}
                     disabled={animation !== null}
+                    catStats={{
+                        fullness: cat.fullness || 0,
+                        happiness: cat.happiness || 0,
+                        health: cat.health || 0
+                    }}
                 />
 
                 <FoodList
                     visible={showFoodList}
                     onClose={() => setShowFoodList(false)}
-                    onFoodSelect={handleFoodSelect}
+                    onFoodSelect={(food) => {
+                        setShowFoodList(false);
+                        feedCat(food);
+                    }}
+                    catPosition={catPosition}
                 />
 
-                <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                    <Text style={styles.deleteButtonText}>Abandonner {cat.name}</Text>
-                </TouchableOpacity>
+                <ActivityList
+                    visible={showActivityList}
+                    onClose={() => setShowActivityList(false)}
+                    onActivitySelect={(activity) => {
+                        setShowActivityList(false);
+                        playCat(activity);
+                    }}
+                />
+
+                <HealingList
+                    visible={showHealingList}
+                    onClose={() => setShowHealingList(false)}
+                    onHealingSelect={(healing) => {
+                        setShowHealingList(false);
+                        healCat(healing);
+                    }}
+                />
             </View>
         </Background>
     );
@@ -351,143 +419,27 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
     loadingText: {
         fontSize: 18,
         color: 'white',
         textAlign: 'center',
         marginTop: 20
     },
-    foodItem: {
+    catContainer: {
+        flex: 2,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    deleteButton: {
+        backgroundColor: '#ff5252',
         padding: 10,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 15,
-        margin: 5,
-        width: 80,
-        height: 100,
-    },
-    dragging: {
-        backgroundColor: '#e0e0e0',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 3,
-    },
-    foodImage: {
-        width: 50,
-        height: 50,
-        marginBottom: 5,
-    },
-    foodName: {
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    foodInstructions: {
-        textAlign: 'center',
-        marginBottom: 15,
-        fontStyle: 'italic',
-    },
-    statusContainer: {
-        padding: 15,
-    },
-    statusBar: {
-        marginBottom: 10,
-    },
-    statusLabel: {
-        color: 'white',
-        marginBottom: 5,
-        fontWeight: 'bold',
-    },
-    barContainer: {
-        height: 15,
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        borderRadius: 10,
-        overflow: 'hidden',
-    },
-    bar: {
-        height: '100%',
-    },
-    catContainer: {
+        borderRadius: 8,
         alignItems: 'center',
+        marginTop: 40,
         margin: 20,
     },
-    catImage: {
-        width: 200,
-        height: 200,
-    },
-    moodText: {
-        color: 'white',
-        fontSize: 16,
-        marginTop: 10,
-    },
-    actionsContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        padding: 15,
-    },
-    actionButton: {
-        backgroundColor: '#4caf50',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 20,
-    },
-    actionButtonText: {
+    deleteButtonText: {
         color: 'white',
         fontWeight: 'bold',
-    },
-    disabledButton: {
-        opacity: 0.5,
-    },
-// Dans les styles de CatScreen.js, ajoutez :
-    foodListContainer: {
-        position: 'absolute',
-        bottom: 120, // Position au-dessus des icônes d'action
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-        zIndex: 999, // S'assurer qu'il est au-dessus des autres éléments
-    },
-    foodList: {
-        backgroundColor: 'white',
-        borderRadius: 15,
-        padding: 15,
-        width: '90%',
-        maxHeight: 300,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
-    },
-    foodListTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 10,
-    },
-    foodItemsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-around',
-        marginVertical: 10,
-    },
-    closeButton: {
-        backgroundColor: '#f0f0f0',
-        padding: 8,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    closeButtonText: {
-        color: '#333',
-        fontWeight: '500',
-    },
+    }
 });
