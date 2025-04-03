@@ -1,6 +1,7 @@
 // components/cat/CatSprite.js
-import React, { useState } from 'react';
-import { View, Image, StyleSheet, Animated, TouchableWithoutFeedback } from 'react-native';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';  // Importation de expo-image
 
 export default function CatSprite({ animation, mood }) {
     // Choisir le bon sprite en fonction de l'humeur et de l'animation
@@ -44,9 +45,9 @@ export default function CatSprite({ animation, mood }) {
     return (
         <View style={styles.container}>
             <Image
-                source={getSprite()}
+                source={getSprite()}  // Utilisation de expo-image pour le rendu des images/GIFs
                 style={styles.catImage}
-                resizeMode="contain"
+                contentFit="contain"  // S'adapte à l'espace sans déformer
             />
         </View>
     );

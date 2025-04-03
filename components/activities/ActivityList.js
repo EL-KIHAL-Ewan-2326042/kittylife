@@ -12,8 +12,8 @@ const activityItems = [
     },
     {
         id: 'toy',
-        name: 'Souris en peluche',
-        image: require('../../assets/activities/mouse.png'),
+        name: 'Boîte',
+        image: require('../../assets/activities/box.png'),
         value: 15,
         animation: 'playing_toy'
     },

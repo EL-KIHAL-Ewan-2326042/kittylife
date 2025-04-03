@@ -238,7 +238,7 @@ export default function CatScreen({ route, navigation }) {
                     message = `${cat.name} a adoré courir après le pointeur laser!`;
                     break;
                 case 'toy':
-                    message = `${cat.name} s'amuse comme un fou avec la souris en peluche!`;
+                    message = `${cat.name} s'amuse comme un fou avec sa boîte!`;
                     break;
                 case 'petting':
                     message = `${cat.name} ronronne pendant que vous le caressez!`;

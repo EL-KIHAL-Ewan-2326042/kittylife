@@ -56,18 +56,13 @@ export default function HomeScreen({ navigation, route }) {
         >
             <Text style={styles.catName}>{item.name}</Text>
             <Text style={styles.catBreed}>{item.breed}</Text>
-            <View style={styles.statsContainer}>
-                <Text style={styles.statText}>❤️ {Math.round(item.health)}%</Text>
-                <Text style={styles.statText}>🍽️ {Math.round(item.fullness)}%</Text>
-                <Text style={styles.statText}>😊 {Math.round(item.happiness)}%</Text>
-            </View>
         </TouchableOpacity>
     );
 
     return (
         <Background>
             <View style={styles.container}>
-                <Text style={styles.title}>Vos Chats Virtuels</Text>
+                <Text style={styles.title}>Mes chats virtuels</Text>
 
                 {cats.length > 0 ? (
                     <FlatList

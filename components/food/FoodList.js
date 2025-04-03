@@ -169,21 +169,21 @@ const styles = StyleSheet.create({
         right: 0,
         top: 0,
         bottom: 0,
-        width: 160, // Augmenté pour laisser plus d'espace
+        width: 160,
         justifyContent: 'center',
     },
     halfWheel: {
-        width: 240, // Augmenté de 200 à 240
-        height: 240, // Augmenté de 200 à 240
+        width: 240,
+        height: 240,
         position: 'relative',
-        right: -50, // Ajusté pour maintenir le demi-cercle (moitié de la largeur)
+        right: -50,
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'visible',
         border: 'none',
         backgroundColor: '#61bb46',
-        borderTopLeftRadius: 120, // Ajusté pour correspondre à la moitié de la largeur
-        borderBottomLeftRadius: 120, // Ajusté pour correspondre à la moitié de la largeur
+        borderTopLeftRadius: 120,
+        borderBottomLeftRadius: 120,
         borderLeftWidth: 2,
         borderTopWidth: 2,
         borderBottomWidth: 2,

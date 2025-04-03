@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Image, Animated, PanResponder } from 'react-native';
 
-// Liste des nourritures disponibles
 const foodItems = [
     { id: 'basic', name: 'Croquettes', type: 'basic', image: require('../../assets/food/food-kibble.png'), value: 15 },
     { id: 'premium', name: 'Premium', type: 'premium', image: require('../../assets/food/food-premium.png'), value: 30 },
@@ -14,7 +13,6 @@ const DraggableFoodItem = ({ food, onDrop, catPosition, angle }) => {
     const [visible, setVisible] = React.useState(true);
     const initialPosition = React.useRef({ x: 0, y: 0 });
 
-    // Calculer la position initiale sur le demi-cercle
     const radius = 110;
     const radians = angle * (Math.PI / 180);
     const x = -Math.cos(radians) * radius;
