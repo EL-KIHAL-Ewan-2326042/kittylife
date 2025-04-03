@@ -34,6 +34,7 @@ export default function CatScreen({ route, navigation }) {
         };
     }, [catId]);
 
+
 // useEffect séparé pour la mise à jour des statistiques
     React.useEffect(() => {
         if (!cat) return;

@@ -1,8 +1,0 @@
-{
-  "fullnessDecayMultiplier": 0.7,
-  "happinessDecayMultiplier": 0.7,
-  "feedingBoostMultiplier": 1.5,
-  "playingBoostMultiplier": 1.3,
-  "healthDecayMultiplier": 0.5,
-  "description": "Mode facile pour débutants. Votre chat est plus résistant et facile à rendre heureux."
-}

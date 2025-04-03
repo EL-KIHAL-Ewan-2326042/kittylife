@@ -104,6 +104,12 @@ export default function CreateCatScreen({ navigation }) {
                 >
                     <Text style={styles.createButtonText}>Créer mon chat</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.createButton}
+                    onPress={() => navigation.navigate('Home')}
+                >
+                    <Text style={styles.createButtonText}>Retour</Text>
+                </TouchableOpacity>
             </ScrollView>
         </Background>
     );
