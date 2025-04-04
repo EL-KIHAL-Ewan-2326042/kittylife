@@ -57,7 +57,6 @@ const DraggableFoodItem = ({ food, onDrop, catPosition, angle }) => {
                 }
             }
 
-            // Retour à la position initiale seulement si on relâche en dehors de la zone du chat
             setDragging(false);
             Animated.spring(pan, {
                 toValue: { x: 0, y: 0 },

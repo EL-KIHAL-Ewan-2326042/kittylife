@@ -1,8 +1,22 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Text } from 'react-native';
+import React, {useEffect} from 'react';
+import {View, StyleSheet, TouchableOpacity, Image, Text, BackHandler} from 'react-native';
 import Background from '../components/ui/Background';
 
 export default function HomeScreen({ navigation }) {
+
+    /* Block back button */
+    useEffect(() => {
+        const backAction = () => {
+            return true;
+        };
+
+        BackHandler.addEventListener('hardwareBackPress', backAction);
+
+        return () => {
+            BackHandler.removeEventListener('hardwareBackPress', backAction);
+        };
+    }, []);
+
     const handleGoToCats = () => {
         navigation.navigate('CatSelection');
     };
@@ -56,17 +70,20 @@ const styles = StyleSheet.create({
         marginTop: 30,
     },
     button: {
-        backgroundColor: '#4caf50',
-        paddingVertical: 15,
+        backgroundColor: '#976360',
+        borderColor: '#4a3533',
+        borderWidth: 5,
+        paddingVertical: 10,
         paddingHorizontal: 20,
-        borderRadius: 25,
-        marginVertical: 10,
         width: '100%',
         alignItems: 'center',
     },
     buttonText: {
+        fontFamily: 'rainyhearts',
         color: 'white',
-        fontWeight: 'bold',
-        fontSize: 18,
+        fontSize: 35,
+        textShadowColor: 'white',
+        textShadowOffset: { width: 0.5, height: 0 },
+        textShadowRadius: 1,
     }
 });

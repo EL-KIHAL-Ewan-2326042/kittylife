@@ -1,4 +1,3 @@
-// hooks/useCat.js
 import { useState, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import StorageService from '../services/storage/storageService';
@@ -7,9 +6,8 @@ export default function useCat(catId, navigation) {
     const [cat, setCat] = useState(null);
     const [loading, setLoading] = useState(true);
     const [animation, setAnimation] = useState(null);
-    const updateInterval = useRef(null);
 
-
+    // Charge le chat depuis le stockage
     const loadCat = async () => {
         setLoading(true);
         try {
@@ -20,28 +18,7 @@ export default function useCat(catId, navigation) {
                 ]);
                 return;
             }
-
-            if (!loadedCat.getStatus) {
-                loadedCat.getStatus = function() {
-                    return {
-                        energy: this.energy || 100,
-                        hunger: this.hunger || 0,
-                        happiness: this.happiness || 100,
-                        health: this.health || 100,
-                        fullness: this.fullness || 50
-                    };
-                };
-            }
-
             setCat(loadedCat);
-
-            if (!loadedCat.isAlive()) {
-                Alert.alert(
-                    'Oh non!',
-                    `${loadedCat.name} est malade et a besoin de soins urgents!`,
-                    [{ text: 'OK' }]
-                );
-            }
         } catch (error) {
             console.error('Erreur lors du chargement du chat:', error);
             Alert.alert('Erreur', 'Impossible de charger les données du chat');
@@ -50,101 +27,108 @@ export default function useCat(catId, navigation) {
         }
     };
 
-    const setupUpdateInterval = () => {
-        if (updateInterval.current) {
-            clearInterval(updateInterval.current);
-        }
+    // Fonction générique pour mettre à jour le chat
+    const updateCat = async (updateFunction, successMessage) => {
+        if (!cat) return;
+        try {
+            const updatedCat = updateFunction({ ...cat });
 
-        updateInterval.current = setInterval(async () => {
-            if (cat) {
-                const updatedCat = cat.update();
-                setCat({...updatedCat});
-                if (Math.random() < 0.1) {
-                    await StorageService.saveCat(updatedCat);
-                }
+            await StorageService.saveCat(updatedCat);
+            setCat(updatedCat);
+
+            if (successMessage) {
+                Alert.alert('Succès', successMessage.replace('{name}', cat.name));
             }
-        }, 1000);
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour du chat:', error);
+            Alert.alert('Erreur', 'Impossible de mettre à jour le chat');
+        }
     };
 
+    // Actions sur le chat
     const feedCat = async (food) => {
         if (!cat) return;
 
-        try {
-            if (updateInterval.current) {
-                clearInterval(updateInterval.current);
-            }
+        clearInterval(updateInterval);
 
-            let updatedCat;
-            if (typeof cat.feed === 'function') {
-                updatedCat = cat.feed(food.value, food);
-            } else {
-                updatedCat = {...cat};
-                updatedCat.id = cat.id;
-                updatedCat.energy = Math.min(100, (updatedCat.energy || 0) + food.value);
-                updatedCat.hunger = Math.max(0, (updatedCat.hunger || 100) - (food.value * 1.5));
-                updatedCat.fullness = Math.min(100, (updatedCat.fullness || 0) + food.value);
+        try {
+            setAnimation('eating');
+
+            setCat((prevCat) => {
+                if (!prevCat) return prevCat;
+
+                const settings = getDifficultySettings(prevCat.difficulty);
+
+                const updatedCat = { ...prevCat };
+                updatedCat.fullness = Math.min(100, prevCat.fullness + food.value);
 
                 if (food.type === 'premium') {
-                    updatedCat.health = Math.min(100, (updatedCat.health || 0) + 5);
+                    const healBonus = settings.healingReward ? settings.healingReward / 5 : 10;
+                    updatedCat.health = Math.min(100, prevCat.health + healBonus);
                 } else if (food.type === 'treat') {
-                    updatedCat.happiness = Math.min(100, (updatedCat.happiness || 0) + 10);
+                    const happinessBonus = settings.playingReward ? settings.playingReward / 2 : 15;
+                    updatedCat.happiness = Math.min(100, prevCat.happiness + happinessBonus);
                 }
 
                 updatedCat.lastFed = Date.now();
-                updatedCat.lastUpdated = Date.now();
-            }
 
-            await StorageService.saveCat(updatedCat);
-            setCat({...updatedCat});
+                return updatedCat;
+            });
 
-            let message = `${cat.name} a été nourri!`;
-            if (food) {
-                switch (food.type) {
-                    case 'premium':
-                        message = `${cat.name} adore cette nourriture premium!`;
-                        break;
-                    case 'treat':
-                        message = `${cat.name} est ravi de cette friandise!`;
-                        break;
-                }
-            }
+            await StorageService.saveCat(cat);
 
-            Alert.alert('Miam!', message);
+            Alert.alert('Miam!', `${cat.name} a mangé ${food.name} !`);
 
             setTimeout(() => {
-                setupUpdateInterval();
-            }, 1000);
+                setAnimation(null);
+
+                // Redémarrer le decay après avoir nourri
+                const interval = setInterval(() => {
+                    setCat((prevCat) => {
+                        if (!prevCat) return prevCat;
+
+                        const settings = getDifficultySettings(prevCat.difficulty);
+
+                        const fullnessDecayRate = (1 / 10) * settings.fullnessDecayMultiplier;
+                        const happinessDecayRate = (1 / 15) * settings.happinessDecayMultiplier;
+                        const healthDecayRate = (1 / 20) * settings.healthDecayMultiplier;
+
+                        const updatedCat = { ...prevCat };
+                        updatedCat.fullness = Math.max(0, prevCat.fullness - fullnessDecayRate);
+                        updatedCat.happiness = Math.max(0, prevCat.happiness - happinessDecayRate);
+
+                        const healthPenalty =
+                            (updatedCat.fullness < 30 ? 1.5 : 0) +
+                            (updatedCat.happiness < 30 ? 1.5 : 0) +
+                            1;
+
+                        updatedCat.health = Math.max(0, prevCat.health - healthDecayRate * healthPenalty);
+
+                        return updatedCat;
+                    });
+                }, 1000);
+
+                setUpdateIntervalRef(interval);
+            }, 2500); // Garde l'animation plus longtemps
+
         } catch (error) {
             console.error('Erreur lors du nourrissage:', error);
             Alert.alert('Erreur', 'Impossible de nourrir le chat');
+            setAnimation(null);
         }
     };
 
-    const playCat = async () => {
-        if (!cat) return;
-        try {
-            const updatedCat = cat.play();
-            await StorageService.saveCat(updatedCat);
-            setCat({...updatedCat});
-            Alert.alert('Génial!', `${cat.name} s'est bien amusé!`);
-        } catch (error) {
-            Alert.alert('Erreur', 'Impossible de jouer avec le chat');
-        }
-    };
+    const playCat = () => updateCat((cat) => {
+        cat.happiness = Math.min(100, cat.happiness + 10);
+        return cat;
+    }, "{name} s'est bien amusé!");
 
-    const healCat = async () => {
-        if (!cat) return;
-        try {
-            const updatedCat = cat.heal();
-            await StorageService.saveCat(updatedCat);
-            setCat({...updatedCat});
-            Alert.alert('Soigné!', `${cat.name} se sent mieux!`);
-        } catch (error) {
-            Alert.alert('Erreur', 'Impossible de soigner le chat');
-        }
-    };
+    const healCat = () => updateCat((cat) => {
+        cat.health = Math.min(100, cat.health + 15);
+        return cat;
+    }, "{name} se sent mieux!");
 
-    const deleteCat = () => {
+    const deleteCat = async () => {
         Alert.alert(
             'Confirmation',
             `Êtes-vous sûr de vouloir abandonner ${cat.name}?`,
@@ -155,10 +139,10 @@ export default function useCat(catId, navigation) {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await StorageService.deleteCat(catId);
+                            await StorageService.deleteCat(cat.id);
                             navigation.navigate('Home');
                         } catch (error) {
-                            Alert.alert('Erreur', 'Impossible de supprimer le chat');
+                            console.error('Erreur lors de la suppression:', error);
                         }
                     }
                 }
@@ -167,24 +151,18 @@ export default function useCat(catId, navigation) {
     };
 
     useEffect(() => {
-        loadCat();
-        setupUpdateInterval();
-
-        return () => {
-            if (updateInterval.current) {
-                clearInterval(updateInterval.current);
-            }
-        };
+        if (catId) {
+            loadCat();
+        }
     }, [catId]);
 
     return {
         cat,
         loading,
         animation,
-        setAnimation,
         feedCat,
         playCat,
         healCat,
-        deleteCat
+        deleteCat,
     };
 }

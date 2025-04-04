@@ -3,6 +3,7 @@
     "package": "com.anonymous.kittylife"
   },
   "plugins": [
-    "expo-video"
+    "expo-video",
+    "expo-font"
   ]
 }

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, TextInput, StyleSheet, TouchableOpacity, ScrollView, BackHandler} from 'react-native';
 import Background from '../components/ui/Background';
 import StorageService from '../services/storage/storageService';
 import { getDifficulties } from '../config/difficulties';
+import CustomText from '../components/ui/CustomText';
 
 export default function CreateCatScreen({ navigation }) {
     const [name, setName] = useState('');
@@ -10,6 +11,19 @@ export default function CreateCatScreen({ navigation }) {
     const [difficulty, setDifficulty] = useState('normal');
     const [error, setError] = useState('');
     const difficulties = getDifficulties();
+
+    /* Block back button */
+    useEffect(() => {
+        const backAction = () => {
+            return true;
+        };
+
+        BackHandler.addEventListener('hardwareBackPress', backAction);
+
+        return () => {
+            BackHandler.removeEventListener('hardwareBackPress', backAction);
+        };
+    }, []);
 
     const handleCreate = async () => {
         if (!name.trim()) {
@@ -40,166 +54,207 @@ export default function CreateCatScreen({ navigation }) {
 
     return (
         <Background>
-            <ScrollView style={styles.container}>
-                <Text style={styles.title}>Créer un Nouveau Chat</Text>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+                <View style={styles.centerContainer}>
+                    <View style={styles.creationcard}>
+                        <CustomText style={styles.title}>Creer un chat</CustomText>
 
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                        {error ? <CustomText style={styles.errorText}>{error}</CustomText> : null}
 
-                <View style={styles.formGroup}>
-                    <Text style={styles.label}>Nom:</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={name}
-                        onChangeText={setName}
-                        placeholder="Entrez le nom du chat"
-                        maxLength={20}
-                    />
-                </View>
+                        <View style={styles.formGroup}>
+                            <CustomText style={styles.label}>Nom:</CustomText>
+                            <TextInput
+                                style={styles.input}
+                                value={name}
+                                onChangeText={setName}
+                                placeholder="Entrez le nom du chat"
+                                maxLength={20}
+                            />
+                        </View>
 
-                <View style={styles.formGroup}>
-                    <Text style={styles.label}>Race:</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={breed}
-                        onChangeText={setBreed}
-                        placeholder="Entrez la race du chat"
-                        maxLength={30}
-                    />
-                </View>
+                        <View style={styles.formGroup}>
+                            <CustomText style={styles.label}>Race:</CustomText>
+                            <TextInput
+                                style={styles.input}
+                                value={breed}
+                                onChangeText={setBreed}
+                                placeholder="Entrez la race du chat"
+                                maxLength={30}
+                            />
+                        </View>
 
-                <View style={styles.formGroup}>
-                    <Text style={styles.label}>Difficulté:</Text>
-                    <View style={styles.difficultyButtons}>
-                        {difficulties.map(diff => (
-                            <TouchableOpacity
-                                key={diff}
-                                style={[
-                                    styles.diffButton,
-                                    difficulty === diff && styles.activeDiffButton
-                                ]}
-                                onPress={() => handleChangeDifficulty(diff)}
-                            >
-                                <Text style={[
-                                    styles.diffButtonText,
-                                    difficulty === diff && styles.activeDiffButtonText
-                                ]}>
-                                    {diff.charAt(0).toUpperCase() + diff.slice(1)}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                        <View style={styles.formGroup}>
+                            <CustomText style={styles.label}>Difficulté:</CustomText>
+                            <View style={styles.difficultyButtons}>
+                                {difficulties.map(diff => (
+                                    <TouchableOpacity
+                                        key={diff}
+                                        style={[
+                                            styles.diffButton,
+                                            difficulty === diff && styles.activeDiffButton
+                                        ]}
+                                        onPress={() => handleChangeDifficulty(diff)}
+                                    >
+                                        <CustomText style={[
+                                            styles.diffButtonText,
+                                            difficulty === diff && styles.activeDiffButtonText
+                                        ]}>
+                                            {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                                        </CustomText>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.difficultyInfo}>
+                            <CustomText style={styles.difficultyInfoText}>
+                                {difficulty === 'baby' && "Bébé: Très faim, très heureux, mais fragile!"}
+                                {difficulty === 'kitten' && "Chaton: Le chat perd faim et bonheur lentement."}
+                                {difficulty === 'lion' && "Lion: Un bébé lion qui a besoin de beaucoup d'attention."}
+                            </CustomText>
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.createButton}
+                            onPress={handleCreate}
+                        >
+                            <CustomText style={styles.createButtonText}>Créer mon chat</CustomText>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.returnButton}
+                            onPress={() => navigation.navigate('CatSelection')}
+                        >
+                            <CustomText style={styles.createButtonText}>Retour</CustomText>
+                        </TouchableOpacity>
                     </View>
                 </View>
-
-                <View style={styles.difficultyInfo}>
-                    <Text style={styles.difficultyInfoText}>
-                        {difficulty === 'baby' && "Bébé: Très faim, très heureux, mais fragile!"}
-                        {difficulty === 'kitten' && "Chaton: Le chat perd faim et bonheur lentement."}
-                        {difficulty === 'lion' && "Lion: Un bébé lion qui a besoin de beaucoup d'attention."}
-                    </Text>
-                </View>
-
-                <TouchableOpacity
-                    style={styles.createButton}
-                    onPress={handleCreate}
-                >
-                    <Text style={styles.createButtonText}>Créer mon chat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.createButton}
-                    onPress={() => navigation.navigate('Home')}
-                >
-                    <Text style={styles.createButtonText}>Retour</Text>
-                </TouchableOpacity>
             </ScrollView>
         </Background>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    centerContainer: {
+        width: '90%',
+        alignItems: 'center',
+    },
+    creationcard: {
+        backgroundColor: '#d2a679',
+        borderWidth: 4,
+        borderColor: '#7a4b27',
         padding: 20,
+        shadowColor: 'black',
+        shadowOffset: { width: 4, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 0,
+        width: '100%',
+        alignItems: 'center',
     },
     title: {
         fontSize: 28,
-        fontWeight: 'bold',
+        fontFamily: 'pixelatedelegance',
         textAlign: 'center',
-        color: 'white',
-        marginVertical: 20,
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: -1, height: 1 },
-        textShadowRadius: 10
+        color: '#4b2c20',
+        marginBottom: 20,
+        marginTop: 10,
+        textShadowColor: '#7a4b27',
+        textShadowOffset: { width: 2, height: 2 },
+        textShadowRadius: 0,
     },
     formGroup: {
-        marginBottom: 20,
+        marginBottom: 15,
+        width: '100%',
     },
     label: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 20,
         marginBottom: 8,
-        color: 'white',
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: -1, height: 1 },
-        textShadowRadius: 5
+        color: '#3a1d0e',
     },
     input: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
+        backgroundColor: '#fff8dc',
+        borderWidth: 3,
+        borderColor: '#7a4b27',
+        padding: 5,
+        fontSize: 20,
+        width: '100%',
+        fontFamily: 'rainyhearts',
+        textAlign: 'center',
     },
     difficultyButtons: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         flexWrap: 'wrap',
     },
     diffButton: {
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 8,
-        marginVertical: 5,
-        minWidth: '23%',
+        backgroundColor: '#f4b183',
+        paddingVertical: 8,
+        borderWidth: 3,
+        borderColor: '#7a4b27',
+        margin: 5,
+        minWidth: 82,
         alignItems: 'center',
+        justifyContent: 'center',
     },
     activeDiffButton: {
-        backgroundColor: '#4caf50',
+        backgroundColor: '#c85a34',
     },
     diffButtonText: {
-        fontWeight: 'bold',
-        color: '#333',
+        fontSize: 18,
+        color: '#3a1d0e',
     },
     activeDiffButtonText: {
         color: 'white',
     },
     difficultyInfo: {
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        padding: 15,
-        borderRadius: 8,
-        marginVertical: 15,
+        backgroundColor: '#e0c097',
+        width: '100%',
+        padding: 10,
+        borderWidth: 3,
+        borderColor: '#7a4b27',
+        marginVertical: 10,
+        textAlign: 'center',
     },
     difficultyInfoText: {
-        color: 'white',
+        fontSize: 16,
+        color: '#3a1d0e',
         textAlign: 'center',
     },
     errorText: {
-        color: '#ff6b6b',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        padding: 10,
-        borderRadius: 5,
-        marginBottom: 15,
+        color: '#ff0000',
+        backgroundColor: '#3a1d0e',
+        padding: 14,
+        marginBottom: 10,
+        fontSize: 18,
         textAlign: 'center',
     },
     createButton: {
-        backgroundColor: '#4caf50',
-        paddingVertical: 15,
-        borderRadius: 25,
-        marginTop: 20,
+        backgroundColor: '#61bc44',
+        borderColor: '#493230',
+        borderWidth: 3,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        width: '100%',
         alignItems: 'center',
+        marginTop: 10,
+    },
+    returnButton: {
+        backgroundColor: '#976360',
+        borderColor: '#493230',
+        borderWidth: 3,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        width: '100%',
+        alignItems: 'center',
+        marginTop: 10,
     },
     createButtonText: {
+        fontSize: 22,
         color: 'white',
-        fontWeight: 'bold',
-        fontSize: 16,
     },
 });

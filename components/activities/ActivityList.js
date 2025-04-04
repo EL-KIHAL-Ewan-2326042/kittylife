@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Image } from 'react-native';
 
-// Liste des activités disponibles
 const activityItems = [
     {
         id: 'laser',

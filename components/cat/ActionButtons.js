@@ -1,10 +1,11 @@
 import React from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { View, TouchableOpacity, StyleSheet, Image } from 'react-native';
 
-const ActionButtons = ({ onFeed, onPlay, onHeal, onBack, disabled, catStats }) => {
+const ActionButtons = ({ onFeed, onPlay, onHeal, disabled, catStats }) => {
+    const navigation = useNavigation();
     const { fullness, happiness, health } = catStats || { fullness: 0, happiness: 0, health: 0 };
 
-    // Fonction pour déterminer la couleur en fonction du pourcentage
     const getColorForPercentage = (value) => {
         if (value < 30) return '#ff5252'; // Rouge si faible
         if (value < 60) return '#ff9800'; // Orange si moyen
@@ -17,7 +18,7 @@ const ActionButtons = ({ onFeed, onPlay, onHeal, onBack, disabled, catStats }) =
         <View style={styles.actionsContainer}>
             <TouchableOpacity
                 style={[styles.actionButton, disabled && styles.disabledButton, { backgroundColor: '#ffeda3' }]}
-                onPress={onBack}
+                onPress={() => navigation.navigate('CatSelection')}
                 disabled={disabled}
             >
                 <View style={styles.buttonContent}>
